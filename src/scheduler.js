@@ -6,12 +6,14 @@ import { db } from "./db.js";
 
 function isDue(expression) {
   try {
-    const interval = cronParser.parseExpression(expression);
-    const next = interval.next().getTime();
     const now = Date.now();
-    // Due if the next occurrence is within the last 60 seconds.
-    // This accounts for small scheduling jitter in GH Actions.
-    return next <= now + 1000 && next > now - 60_000;
+    // Look at what the scheduled time was 60 seconds ago.
+    // If that time falls within the last minute, the job is due.
+    const interval = cronParser.parseExpression(expression, {
+      currentDate: new Date(now - 60000),
+    });
+    const scheduled = interval.next().getTime();
+    return scheduled <= now && scheduled > now - 60000;
   } catch {
     return false;
   }
